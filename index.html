@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>cv — accueil</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #0f0;
+      font-family: "Courier New", monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      text-align: center;
+    }
+
+    /* phrase tapée */
+    .hacked {
+      font-size: clamp(18px, 5vw, 32px);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .type {
+      display: inline-block;
+    }
+    .caret {
+      display: inline-block;
+      width: .7ch;
+      font-weight: 700;
+      animation: blink-caret 1s steps(2, start) infinite;
+      user-select: none;
+    }
+    @keyframes blink-caret {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* vidéo youtube */
+    .video-container {
+      width: 90%;
+      max-width: 800px;
+      aspect-ratio: 16 / 9;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 12px rgba(0,255,0,0.4);
+    }
+    .video-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* message complémentaire */
+    .extra {
+      max-width: 800px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- phrase hackée -->
+  <div class="hacked" data-text="vous avez été hacké">
+    <span id="typed" class="type"></span><span id="caret" class="caret">_</span>
+  </div>
+
+  <!-- vidéo -->
+  <div class="video-container">
+    <iframe 
+      src="https://www.youtube.com/embed/TON_ID_VIDEO" 
+      title="ma vidéo" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <!-- message final -->
+  <div class="extra">
+    pour éviter ce risque de problème engagez quelqu’un de motivé et de polyvalent, qui a envie d’apprendre.
+  </div>
+
+  <script>
+    // effet de frappe
+    (function() {
+      const text = document.querySelector('.hacked').getAttribute('data-text') || '';
+      const out = document.getElementById('typed');
+      let i = 0;
+      const speed = 70; // ms par caractère
+      const delay = 400;
+
+      function typeNext() {
+        if (i < text.length) {
+          out.textContent += text[i];
+          i++;
+          setTimeout(typeNext, speed);
+        }
+      }
+      setTimeout(typeNext, delay);
+    })();
+  </script>
+
+</body>
+</html>
