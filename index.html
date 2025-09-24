@@ -81,7 +81,7 @@ html, body {
 /* Tableau visiteurs */
 #visitor-table {
   width: 90%;
-  max-width: 600px;
+  max-width: 800px;
   border: 1px solid #0f0;
   border-collapse: collapse;
   margin-top: 1rem;
@@ -117,13 +117,12 @@ html, body {
       <th>Appareil/Navigateur</th>
       <th>Résolution</th>
       <th>Langue</th>
-      <th>Temps (s)</th>
+      <th>Temps sur page</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<!-- Firebase + Firestore -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
@@ -146,12 +145,48 @@ const db = getFirestore(app);
 // --- Temps passé ---
 let startTime = Date.now();
 
+// --- Détection appareil ---
+function detectDevice(userAgent) {
+  const ua = userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
+    let model = "Téléphone";
+    if (/iphone/.test(ua)) model = "iPhone";
+    else if (/ipad/.test(ua)) model = "iPad";
+    else if (/android/.test(ua)) model = "Android";
+    return model;
+  } else {
+    return "PC/Mac";
+  }
+}
+
+// --- Format temps lisible ---
+function formatDuration(seconds) {
+  if (seconds < 60) return seconds + " s";
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return min + " min " + sec + " s";
+}
+
+// --- Format date locale FR ---
+function formatDateFR(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 // --- Enregistrement des visites ---
 async function recordVisit() {
   try {
     const res = await fetch("https://ipapi.co/json/");
     const data = await res.json();
     const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    const device = detectDevice(navigator.userAgent);
 
     await addDoc(collection(db, "visites"), {
       ip: data.ip,
@@ -160,35 +195,37 @@ async function recordVisit() {
       date: new Date().toISOString(),
       userAgent: navigator.userAgent,
       resolution: screen.width + "x" + screen.height,
+      device: device,
       language: navigator.language,
       tempsSurPage: durationSeconds
     });
 
     console.log("✅ Visite enregistrée !");
-    displayVisitors(); 
+    displayVisitors();
   } catch (e) {
     console.error("❌ Erreur d’enregistrement :", e);
   }
 }
 
-// --- Tableau visiteurs ---
+// --- Affichage tableau visiteurs ---
 async function displayVisitors() {
   const tbody = document.querySelector("#visitor-table tbody");
   tbody.innerHTML = "";
 
   const q = query(collection(db, "visites"), orderBy("date", "desc"), limit(10));
   const querySnapshot = await getDocs(q);
+
   querySnapshot.forEach(doc => {
     const v = doc.data();
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${new Date(v.date).toLocaleString()}</td>
+      <td>${formatDateFR(v.date)}</td>
       <td>${v.ip}</td>
       <td>${v.ville} / ${v.pays}</td>
-      <td>${v.userAgent}</td>
+      <td>${v.device} (${v.userAgent})</td>
       <td>${v.resolution}</td>
       <td>${v.language}</td>
-      <td>${v.tempsSurPage || '-'}</td>
+      <td>${formatDuration(v.tempsSurPage || 0)}</td>
     `;
     tbody.appendChild(tr);
   });
