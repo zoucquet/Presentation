@@ -1,98 +1,84 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CV — Accueil</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CV — accueil</title>
 <style>
-html, body {
-  height: 100%;
-  margin: 0;
-  background: #000;
-  color: #0f0;
-  font-family: "Courier New", monospace;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  gap: 2rem;
-}
+  html,body{
+    height:100%;
+    margin:0;
+    background:#000;
+    color:#0f0;
+    font-family:"Courier New",monospace;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2rem;
+    padding:1rem;
+  }
 
-.hacked-box {
-  width: 90%;
-  max-width: 600px;
-  border: 2px solid #0f0;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 0 12px rgba(0,255,0,0.4);
-  font-size: clamp(28px,5vw,48px);
-  white-space: nowrap;
-  overflow: hidden;
-  position: relative;
-  text-align: center;
-}
-.caret {
-  display: inline-block;
-  width: .7ch;
-  font-weight: 700;
-  animation: blink-caret 1s steps(2,start) infinite;
-}
-@keyframes blink-caret {
-  0%,100% {opacity:1;}
-  50% {opacity:0;}
-}
+  .hacked-box{
+    width:90%;
+    max-width:600px;
+    border:2px solid #0f0;
+    border-radius:8px;
+    padding:1rem 1.5rem;
+    box-shadow:0 0 12px rgba(0,255,0,0.4);
+    font-size:clamp(28px,5vw,48px);
+    white-space:nowrap;
+    overflow:hidden;
+    position:relative;
+    text-align:center;
+  }
+  .caret{
+    display:inline-block;
+    width:.7ch;
+    font-weight:700;
+    animation:blink-caret 1s steps(2,start) infinite;
+  }
+  @keyframes blink-caret{0%,100%{opacity:1;}50%{opacity:0;}}
 
-.command-box {
-  width: 320px;
-  height: 50px;
-  border: 2px solid #0f0;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 0 8px rgba(0,255,0,0.3);
-  background: #000;
-  overflow: hidden;
-  position: relative;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-}
-.line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  transition: transform 0.5s ease, opacity 0.5s ease;
-}
-.type { display: inline-block; }
+  .command-box{
+    width:320px;
+    height:50px;
+    border:2px solid #0f0;
+    border-radius:8px;
+    padding:0.5rem 1rem;
+    box-shadow:0 0 8px rgba(0,255,0,0.3);
+    background:#000;
+    overflow:hidden;
+    position:relative;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+  }
+  .line{ position:absolute; top:0; left:0; display:flex; transition:transform .5s ease, opacity .5s ease; }
+  .type{ display:inline-block; }
 
-.extra {
-  max-width: 800px;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #0f0;
-  text-align: center;
-}
+  .extra{ max-width:800px; font-size:16px; line-height:1.5; color:#0f0; text-align:center; }
 </style>
 </head>
 <body>
 
-<div class="hacked-box" id="hacked-box">
-  <span id="hacked-text"></span><span class="caret">_</span>
-</div>
+  <div class="hacked-box" id="hacked-box">
+    <span id="hacked-text"></span><span class="caret">_</span>
+  </div>
 
-<div class="command-box" id="command-box"></div>
+  <div class="command-box" id="command-box"></div>
 
-<div class="extra">
-  Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter ! 
-</div>
+  <div class="extra">
+    Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter !
+  </div>
 
 <script type="module">
+/* ---------- Firebase init ---------- */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-// --- Configuration Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
   authDomain: "presentation-59c5e.firebaseapp.com",
@@ -105,68 +91,114 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
+/* ----------------------------------- */
 
-// --- Détection appareil ---
-function detectDevice(userAgent) {
-  const ua = userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
-    if (/iphone/.test(ua)) return "iPhone";
-    else if (/ipad/.test(ua)) return "iPad";
-    else if (/android/.test(ua)) return "Android";
+/* ---------- utilitaires ---------- */
+function detectDevice(uaStr){
+  const ua = uaStr.toLowerCase();
+  if(/mobile|android|iphone|ipad|ipod|windows phone|blackberry/.test(ua)){
+    if(/iphone/.test(ua)) return "iPhone";
+    if(/ipad/.test(ua)) return "iPad";
+    if(/android/.test(ua)) return "Android";
     return "Téléphone";
-  } else return "PC/Mac";
+  }
+  return "PC/Mac";
 }
+function formatDateFR(d){
+  // 'HH:mm:ss DD/MM/YYYY' locale FR, Europe/Paris
+  return new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", hour12:false });
+}
+/* --------------------------------- */
 
-// --- Heartbeat avec intervalles uniques ---
-let startTime = Date.now();
+/* ---------- envoi unique programmé ---------- */
+/*
+  comportement demandé :
+  - envoi unique après 1s (détecter vite la connexion)
+  - ensuite envoi unique à 5s
+  - ensuite envoi unique à 12s
+  - ensuite envoi unique à 25s
+  - rien après 25s
+*/
+const startTime = Date.now();
+let timeouts = []; // pour pouvoir clear si nécessaire
 
-async function sendData() {
+async function gatherAndSend() {
+  // calcule le temps écoulé en secondes
+  const elapsedSec = Math.round((Date.now() - startTime) / 1000);
+
+  // on récupère IP+ville+pays via ipapi.co (nécessite accès externe)
+  // si l'appel échoue, on envoie les infos clients sans IP/localisation.
+  let geo = { ip: null, city: null, country_name: null };
   try {
-    const data = await fetch("https://ipapi.co/json/").then(res => res.json());
-    const durationSec = Math.round((Date.now() - startTime)/1000);
-    const device = detectDevice(navigator.userAgent);
+    const res = await fetch("https://ipapi.co/json/");
+    if(res.ok) geo = await res.json();
+  } catch(e) {
+    // silent fail — on enverra nulls pour ip/ville/pays
+    console.warn("Impossible de récupérer IP/geo:", e);
+  }
 
-    await addDoc(collection(db, "visites"), {
-      ip: data.ip,
-      ville: data.city,
-      pays: data.country_name,
-      date: new Date().toLocaleString("fr-FR", {hour12:false}),
-      userAgent: navigator.userAgent,
-      resolution: screen.width + "x" + screen.height,
-      device: device,
-      language: navigator.language,
-      tempsSurPage: durationSec
-    });
-  } catch(e){ console.error("Erreur heartbeat:", e); }
-}
+  const payload = {
+    date: formatDateFR(new Date()),
+    startTimeISO: new Date(startTime).toISOString(),
+    tempsSurPageSec: elapsedSec,
+    ip: geo.ip || "inconnue",
+    ville: geo.city || "inconnue",
+    pays: geo.country_name || "inconnu",
+    userAgent: navigator.userAgent,
+    device: detectDevice(navigator.userAgent),
+    resolution: screen.width + "x" + screen.height,
+    language: navigator.language || navigator.userLanguage
+  };
 
-function startHeartbeat() {
-  // 1 à 5 s → envoie après 5 s
-  setTimeout(sendData, 4000);
-  // 6 à 10 s → envoie après 10 s
-  setTimeout(sendData, 8000);
-  // 11 à 20 s → envoie après 20 s
-  setTimeout(sendData, 20000);
-}
-
-// --- Texte hacké ---
-const hackedTextStr = "Vous avez été hacké";
-const hackedOut = document.getElementById('hacked-text');
-let i = 0;
-const speedHacked = 70;
-
-function typeHacked() {
-  if(i < hackedTextStr.length){
-    hackedOut.textContent += hackedTextStr[i];
-    i++;
-    setTimeout(typeHacked, speedHacked);
-  } else {
-    runCommands();
-    startHeartbeat();
+  try {
+    await addDoc(collection(db, "visites"), payload);
+    console.log("Envoi heartbeat —", elapsedSec + "s", payload.ip, payload.ville);
+  } catch(err){
+    console.error("Erreur envoi heartbeat:", err);
   }
 }
 
-// --- Commandes animées ---
+function scheduleSingleSends(){
+  // clear éventuels timeouts précédents
+  timeouts.forEach(t => clearTimeout(t));
+  timeouts = [];
+
+  // envoi unique à 1s
+  timeouts.push(setTimeout(gatherAndSend, 1000));
+
+  // envoi unique à 5s
+  timeouts.push(setTimeout(gatherAndSend, 5000));
+
+  // envoi unique à 12s
+  timeouts.push(setTimeout(gatherAndSend, 12000));
+
+  // envoi unique à 25s
+  timeouts.push(setTimeout(gatherAndSend, 25000));
+}
+
+/* si tu veux forcer un dernier envoi quand l'utilisateur ferme (essai) */
+window.addEventListener("beforeunload", () => {
+  // tentative synchrone : navigator.sendBeacon n'est pas utilisé car Firestore SDK ne supporte pas sendBeacon.
+  // On garde au moins le dernier envoi programmé déjà fait ; on peut essayer un envoi rapide en background, mais navigateur peut le bloquer.
+  // Ici on ne bloque la fermeture : on laisse les timeouts précédents suffire.
+});
+
+/* ---------- texte + commandes (visuel) ---------- */
+const hackedTextStr = "Vous avez été hacké";
+const hackedOut = document.getElementById('hacked-text');
+let ti = 0;
+const speedHacked = 70;
+function typeHacked(){
+  if(ti < hackedTextStr.length){
+    hackedOut.textContent += hackedTextStr[ti++];
+    setTimeout(typeHacked, speedHacked);
+  } else {
+    runCommands();
+    scheduleSingleSends(); // démarre la séquence d'envois uniques
+  }
+}
+typeHacked();
+
 const commands = [
   "Gabriel Chamblain",
   "Recherche alternance",
@@ -178,71 +210,56 @@ const commands = [
 ];
 
 const box = document.getElementById('command-box');
-const speedCmd = 200;            
-const delayAfterCommand = 1500;  
+const speedCmd = 200;
+const delayAfterCommand = 1500;
 let cmdIndex = 0;
 
 function typeCommand(cmd, callback){
   const line = document.createElement('div');
   line.classList.add('line');
-  const typed = document.createElement('span');
-  typed.classList.add('type');
-  const caret = document.createElement('span');
-  caret.classList.add('caret');
-  caret.textContent = "_";
-
-  line.appendChild(typed);
-  line.appendChild(caret);
+  const typed = document.createElement('span'); typed.classList.add('type');
+  const caret = document.createElement('span'); caret.classList.add('caret'); caret.textContent = "_";
+  line.appendChild(typed); line.appendChild(caret);
   box.appendChild(line);
 
   const words = cmd.split(" ");
-  let wordIndex = 0;
+  let w = 0;
 
-  function typeNextWord(){
-    if(wordIndex < words.length){
-      if(wordIndex > 0) typed.textContent += " ";
-      const word = words[wordIndex];
-      let letterIndex = 0;
-
-      function typeLetter(){
-        if(letterIndex < word.length){
-          typed.textContent += word[letterIndex];
-          letterIndex++;
-          setTimeout(typeLetter, speedCmd/word.length);
+  function nextWord(){
+    if(w < words.length){
+      if(w > 0) typed.textContent += " ";
+      const word = words[w++];
+      let l = 0;
+      function nextLetter(){
+        if(l < word.length){
+          typed.textContent += word[l++];
+          setTimeout(nextLetter, Math.max(50, speedCmd / word.length)); // frappe plus lente par mot
         } else {
-          wordIndex++;
-          setTimeout(typeNextWord, 400);
+          setTimeout(nextWord, 400);
         }
       }
-      typeLetter();
+      nextLetter();
     } else {
       setTimeout(() => {
         line.style.transform = "translateY(-100%)";
-        line.style.opacity = 0;
-        setTimeout(() => {
-          line.remove();
-          callback();
-        }, 500);
+        line.style.opacity = "0";
+        setTimeout(()=>{ line.remove(); callback(); }, 500);
       }, delayAfterCommand);
     }
   }
-  typeNextWord();
+  nextWord();
 }
 
 function runCommands(){
   if(cmdIndex < commands.length){
-    typeCommand(commands[cmdIndex], ()=>{
-      cmdIndex++;
-      runCommands();
-    });
+    typeCommand(commands[cmdIndex++], ()=> runCommands());
   } else {
     cmdIndex = 0;
     runCommands();
   }
 }
 
-typeHacked();
+/* fin du script */
 </script>
 </body>
 </html>
-
