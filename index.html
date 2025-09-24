@@ -86,7 +86,6 @@ html, body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
 import { getFirestore, collection, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -100,15 +99,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getFirestore(app);
-
-let visitDocRef = null; // référence Firestore de la visite courante
 
 // --- Détection appareil ---
 function detectDevice(userAgent) {
   const ua = userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
+  if (/mobile|android|iphone|ipad|ipod/.test(ua)) {
     if (/iphone/.test(ua)) return "iPhone";
     if (/ipad/.test(ua)) return "iPad";
     if (/android/.test(ua)) return "Android";
@@ -117,149 +113,50 @@ function detectDevice(userAgent) {
   return "PC/Mac";
 }
 
-// --- Création du document de visite ---
-async function createVisit() {
-  try {
-    const res = await fetch("https://ipapi.co/json/");
-    const data = await res.json();
-    const device = detectDevice(navigator.userAgent);
+// --- Enregistrement ---
+async function startVisit() {
+  const res = await fetch("https://ipapi.co/json/");
+  const data = await res.json();
 
-    const now = new Date();
-    const formattedDate = now.toLocaleString("fr-FR", { timeZone: "Europe/Paris" });
+  // Création du doc au début
+  const docRef = await addDoc(collection(db, "visites"), {
+    ip: data.ip,
+    ville: data.city,
+    pays: data.country_name,
+    date: new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" }),
+    userAgent: navigator.userAgent,
+    resolution: screen.width + "x" + screen.height,
+    device: detectDevice(navigator.userAgent),
+    language: navigator.language,
+    elapsedTime: 0 // temps passé
+  });
 
-    // Création du doc Firestore
-    visitDocRef = await addDoc(collection(db, "visites"), {
-      ip: data.ip,
-      ville: data.city,
-      pays: data.country_name,
-      date: formattedDate,
-      device: device,
-      resolution: screen.width + "x" + screen.height,
-      language: navigator.language,
-      userAgent: navigator.userAgent,
-      steps: { "1s": true } // on enregistre immédiatement l'arrivée
-    });
+  console.log("✅ Doc créé :", docRef.id);
 
-    console.log("✅ Visite créée :", visitDocRef.id);
-    scheduleUpdates(); // planifie les updates pour 5s, 12s, 25s
-  } catch (e) {
-    console.error("❌ Erreur création visite :", e);
-  }
-}
-
-// --- Mettre à jour le doc avec une étape ---
-async function markStep(step) {
-  if (!visitDocRef) return;
-  try {
-    await updateDoc(visitDocRef, {
-      [`steps.${step}`]: true
-    });
-    console.log(`⏱️ Étape ${step} enregistrée !`);
-  } catch (e) {
-    console.error("❌ Erreur update étape :", e);
-  }
-}
-
-// --- Planification des étapes ---
-function scheduleUpdates() {
-  setTimeout(() => markStep("5s"), 5000);
-  setTimeout(() => markStep("12s"), 12000);
-  setTimeout(() => markStep("25s"), 25000);
-}
-
-// --- Texte hacké ---
-const hackedTextStr = "Vous avez été hacké";
-const hackedOut = document.getElementById("hacked-text");
-let i = 0;
-const speedHacked = 70;
-
-function typeHacked() {
-  if (i < hackedTextStr.length) {
-    hackedOut.textContent += hackedTextStr[i];
-    i++;
-    setTimeout(typeHacked, speedHacked);
-  } else {
-    runCommands();
-    createVisit();
-  }
-}
-
-// --- Commandes ---
-const commands = [
-  "Gabriel Chamblain",
-  "Recherche alternance",
-  "Candidat motivé",
-  "3ᵉ année de BUT",
-  "1 semaine en formation",
-  "2 semaines en entreprise",
-  "Envie d'apprendre"
-];
-
-const box = document.getElementById("command-box");
-const speedCmd = 200;
-const delayAfterCommand = 1500;
-let cmdIndex = 0;
-
-function typeCommand(cmd, callback) {
-  const line = document.createElement("div");
-  line.classList.add("line");
-  const typed = document.createElement("span");
-  typed.classList.add("type");
-  const caret = document.createElement("span");
-  caret.classList.add("caret");
-  caret.textContent = "_";
-
-  line.appendChild(typed);
-  line.appendChild(caret);
-  box.appendChild(line);
-
-  const words = cmd.split(" ");
-  let wordIndex = 0;
-
-  function typeNextWord() {
-    if (wordIndex < words.length) {
-      if (wordIndex > 0) typed.textContent += " ";
-      const word = words[wordIndex];
-      let letterIndex = 0;
-
-      function typeLetter() {
-        if (letterIndex < word.length) {
-          typed.textContent += word[letterIndex];
-          letterIndex++;
-          setTimeout(typeLetter, speedCmd / word.length);
-        } else {
-          wordIndex++;
-          setTimeout(typeNextWord, 400);
-        }
-      }
-      typeLetter();
-    } else {
-      setTimeout(() => {
-        line.style.transform = "translateY(-100%)";
-        line.style.opacity = 0;
-        setTimeout(() => {
-          line.remove();
-          callback();
-        }, 500);
-      }, delayAfterCommand);
+  // Variable compteur
+  let elapsedTime = 0;
+  const interval = setInterval(async () => {
+    elapsedTime += 2;
+    if (elapsedTime > 25) {
+      clearInterval(interval); // stop après 25s
+      console.log("⏹️ Arrêt du suivi après 25s");
+      return;
     }
-  }
-  typeNextWord();
+    try {
+      await updateDoc(doc(db, "visites", docRef.id), {
+        elapsedTime: elapsedTime
+      });
+      console.log("⏱️ Temps mis à jour :", elapsedTime, "s");
+    } catch (e) {
+      console.error("❌ Erreur update :", e);
+      clearInterval(interval);
+    }
+  }, 2000);
 }
 
-function runCommands() {
-  if (cmdIndex < commands.length) {
-    typeCommand(commands[cmdIndex], () => {
-      cmdIndex++;
-      runCommands();
-    });
-  } else {
-    cmdIndex = 0;
-    runCommands();
-  }
-}
-
-typeHacked();
+startVisit();
 </script>
+
 </body>
 </html>
+
