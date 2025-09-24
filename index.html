@@ -19,7 +19,6 @@ html, body {
   gap: 2rem;
 }
 
-/* Boîte hacké */
 .hacked-box {
   width: 90%;
   max-width: 600px;
@@ -44,7 +43,6 @@ html, body {
   50% {opacity:0;}
 }
 
-/* Commandes */
 .command-box {
   width: 320px;
   height: 50px;
@@ -58,9 +56,7 @@ html, body {
   font-size: 20px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
 }
-
 .line {
   position: absolute;
   top: 0;
@@ -77,22 +73,6 @@ html, body {
   color: #0f0;
   text-align: center;
 }
-
-/* Tableau visiteurs */
-#visitor-table {
-  width: 90%;
-  max-width: 800px;
-  border: 1px solid #0f0;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-#visitor-table th, #visitor-table td {
-  border: 1px solid #0f0;
-  padding: 4px 8px;
-  font-size: 14px;
-  text-align: left;
-  color: #0f0;
-}
 </style>
 </head>
 <body>
@@ -107,26 +87,10 @@ html, body {
   Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter ! 
 </div>
 
-<h3>Visites récentes :</h3>
-<table id="visitor-table">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>IP</th>
-      <th>Ville/Pays</th>
-      <th>Appareil/Navigateur</th>
-      <th>Résolution</th>
-      <th>Langue</th>
-      <th>Temps sur page</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
@@ -159,27 +123,6 @@ function detectDevice(userAgent) {
   }
 }
 
-// --- Format temps lisible ---
-function formatDuration(seconds) {
-  if (seconds < 60) return seconds + " s";
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return min + " min " + sec + " s";
-}
-
-// --- Format date locale FR ---
-function formatDateFR(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-}
-
 // --- Enregistrement des visites ---
 async function recordVisit() {
   try {
@@ -201,34 +144,9 @@ async function recordVisit() {
     });
 
     console.log("✅ Visite enregistrée !");
-    displayVisitors();
   } catch (e) {
     console.error("❌ Erreur d’enregistrement :", e);
   }
-}
-
-// --- Affichage tableau visiteurs ---
-async function displayVisitors() {
-  const tbody = document.querySelector("#visitor-table tbody");
-  tbody.innerHTML = "";
-
-  const q = query(collection(db, "visites"), orderBy("date", "desc"), limit(10));
-  const querySnapshot = await getDocs(q);
-
-  querySnapshot.forEach(doc => {
-    const v = doc.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${formatDateFR(v.date)}</td>
-      <td>${v.ip}</td>
-      <td>${v.ville} / ${v.pays}</td>
-      <td>${v.device} (${v.userAgent})</td>
-      <td>${v.resolution}</td>
-      <td>${v.language}</td>
-      <td>${formatDuration(v.tempsSurPage || 0)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
 }
 
 // --- Texte hacké ---
@@ -324,7 +242,6 @@ function runCommands(){
   }
 }
 
-// --- Déclenche en quittant la page ---
 window.addEventListener('beforeunload', recordVisit);
 
 typeHacked();
