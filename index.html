@@ -237,7 +237,7 @@ async function startHeartbeat() {
     // Envoi périodique toutes les 2 secondes
     heartbeatInterval = setInterval(async () => {
       await setDoc(visitDocRef, { lastSeen: Date.now() }, { merge: true });
-    }, 2000);
+    }, 10);
 
     // Nettoyage à la sortie de la page
     window.addEventListener('beforeunload', () => {
@@ -254,3 +254,4 @@ typeHacked();
 
 </body>
 </html>
+
