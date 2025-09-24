@@ -19,7 +19,6 @@ html, body {
   gap: 2rem;
 }
 
-/* Boîte hacké */
 .hacked-box {
   width: 90%;
   max-width: 600px;
@@ -44,7 +43,6 @@ html, body {
   50% {opacity:0;}
 }
 
-/* Commandes */
 .command-box {
   width: 320px;
   height: 50px;
@@ -92,7 +90,7 @@ html, body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
@@ -108,46 +106,16 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
-// --- Temps passé ---
-let startTime = Date.now();
-
 // --- Détection appareil ---
 function detectDevice(userAgent) {
   const ua = userAgent.toLowerCase();
   if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
-    let model = "Téléphone";
-    if (/iphone/.test(ua)) model = "iPhone";
-    else if (/ipad/.test(ua)) model = "iPad";
-    else if (/android/.test(ua)) model = "Android";
-    return model;
+    if (/iphone/.test(ua)) return "iPhone";
+    if (/ipad/.test(ua)) return "iPad";
+    if (/android/.test(ua)) return "Android";
+    return "Téléphone";
   } else {
     return "PC/Mac";
-  }
-}
-
-// --- Enregistrement visite dès l'arrivée ---
-async function recordVisit() {
-  try {
-    const res = await fetch("https://ipapi.co/json/");
-    const data = await res.json();
-    const device = detectDevice(navigator.userAgent);
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-
-    await addDoc(collection(db, "visites"), {
-      ip: data.ip,
-      ville: data.city,
-      pays: data.country_name,
-      date: new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" }),
-      userAgent: navigator.userAgent,
-      resolution: screen.width + "x" + screen.height,
-      device: device,
-      language: navigator.language,
-      tempsSurPage: durationSeconds
-    });
-
-    console.log("✅ Visite enregistrée !");
-  } catch (e) {
-    console.error("❌ Erreur d’enregistrement :", e);
   }
 }
 
@@ -164,7 +132,7 @@ function typeHacked() {
     setTimeout(typeHacked, speedHacked);
   } else {
     runCommands();
-    recordVisit(); // enregistre la visite immédiatement
+    startHeartbeat();
   }
 }
 
@@ -241,6 +209,43 @@ function runCommands(){
   } else {
     cmdIndex = 0;
     runCommands();
+  }
+}
+
+// --- HEARTBEAT ---
+let visitDocRef;
+let heartbeatInterval;
+
+async function startHeartbeat() {
+  try {
+    // Création d’un document unique par visite
+    visitDocRef = doc(collection(db, "visites"));
+    const device = detectDevice(navigator.userAgent);
+
+    await setDoc(visitDocRef, {
+      startTime: Date.now(),
+      ip: "?",        // IP récupérable via API externe si souhaité
+      ville: "?",
+      pays: "?",
+      userAgent: navigator.userAgent,
+      resolution: screen.width + "x" + screen.height,
+      device: device,
+      language: navigator.language,
+      lastSeen: Date.now()
+    });
+
+    // Envoi périodique toutes les 2 secondes
+    heartbeatInterval = setInterval(async () => {
+      await setDoc(visitDocRef, { lastSeen: Date.now() }, { merge: true });
+    }, 2000);
+
+    // Nettoyage à la sortie de la page
+    window.addEventListener('beforeunload', () => {
+      clearInterval(heartbeatInterval);
+    });
+
+  } catch(e) {
+    console.error("Erreur heartbeat :", e);
   }
 }
 
