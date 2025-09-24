@@ -38,12 +38,49 @@ html, body {
   animation: blink-caret 1s steps(2,start) infinite;
 }
 @keyframes blink-caret { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+.command-box {
+  width: 320px;
+  height: 50px;
+  border: 2px solid #0f0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 0 8px rgba(0,255,0,0.3);
+  background: #000;
+  overflow: hidden;
+  position: relative;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+}
+.line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+.type { display: inline-block; }
+
+.extra {
+  max-width: 800px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #0f0;
+  text-align: center;
+}
 </style>
 </head>
 <body>
 
 <div class="hacked-box" id="hacked-box">
   <span id="hacked-text"></span><span class="caret">_</span>
+</div>
+
+<div class="command-box" id="command-box"></div>
+
+<div class="extra">
+  Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter ! 
 </div>
 
 <script type="module">
@@ -72,9 +109,7 @@ function detectDevice(userAgent){
     if (/ipad/.test(ua)) return "iPad";
     if (/android/.test(ua)) return "Android";
     return "Téléphone";
-  } else {
-    return "PC/Mac";
-  }
+  } else { return "PC/Mac"; }
 }
 
 // --- Texte hacké ---
@@ -88,16 +123,90 @@ function typeHacked(){
     i++;
     setTimeout(typeHacked, speedHacked);
   } else {
+    runCommands();
     startHeartbeat();
   }
 }
 typeHacked();
 
+// --- Commandes ---
+const commands = [
+  "Gabriel Chamblain",
+  "Recherche alternance",
+  "Candidat motivé",
+  "3ᵉ année de BUT",
+  "1 semaine en formation",
+  "2 semaines en entreprise",
+  "Envie d'apprendre"
+];
+const box = document.getElementById('command-box');
+const speedCmd = 200;            
+const delayAfterCommand = 1500;  
+let cmdIndex = 0;
+
+function typeCommand(cmd, callback){
+  const line = document.createElement('div');
+  line.classList.add('line');
+  const typed = document.createElement('span');
+  typed.classList.add('type');
+  const caret = document.createElement('span');
+  caret.classList.add('caret');
+  caret.textContent = "_";
+
+  line.appendChild(typed);
+  line.appendChild(caret);
+  box.appendChild(line);
+
+  const words = cmd.split(" ");
+  let wordIndex = 0;
+
+  function typeNextWord(){
+    if(wordIndex < words.length){
+      if(wordIndex > 0) typed.textContent += " ";
+      const word = words[wordIndex];
+      let letterIndex = 0;
+
+      function typeLetter(){
+        if(letterIndex < word.length){
+          typed.textContent += word[letterIndex];
+          letterIndex++;
+          setTimeout(typeLetter, speedCmd/word.length);
+        } else {
+          wordIndex++;
+          setTimeout(typeNextWord, 400);
+        }
+      }
+      typeLetter();
+    } else {
+      setTimeout(() => {
+        line.style.transform = "translateY(-100%)";
+        line.style.opacity = 0;
+        setTimeout(() => {
+          line.remove();
+          callback();
+        }, 500);
+      }, delayAfterCommand);
+    }
+  }
+
+  typeNextWord();
+}
+
+function runCommands(){
+  if(cmdIndex < commands.length){
+    typeCommand(commands[cmdIndex], ()=>{
+      cmdIndex++;
+      runCommands();
+    });
+  } else {
+    cmdIndex = 0;
+    runCommands();
+  }
+}
+
 // --- Heartbeat adaptatif ---
 let startTime = Date.now();
 let heartbeatId;
-
-// Fonction d’envoi des données à Firebase
 async function sendData(){
   try {
     const data = await fetch("https://ipapi.co/json/").then(res => res.json());
@@ -114,27 +223,22 @@ async function sendData(){
       language: navigator.language,
       tempsSurPage: durationSec
     });
-    console.log("✅ Données envoyées:", durationSec,"s");
   } catch(e){ console.error("Erreur heartbeat:", e); }
 }
 
-// Heartbeat adaptatif
 function startHeartbeat(){
   async function tick(){
     await sendData();
     const elapsed = Math.round((Date.now() - startTime)/1000);
-    let nextInterval = 2000; // par défaut
-
+    let nextInterval = 2000;
     if(elapsed < 10) nextInterval = 1000;
     else if(elapsed <= 25) nextInterval = 3000;
     else nextInterval = 20000;
-
     heartbeatId = setTimeout(tick, nextInterval);
   }
   tick();
 }
 
-// Optionnel : capture dernière mise à jour à la fermeture
 window.addEventListener("beforeunload", async () => {
   if(heartbeatId) clearTimeout(heartbeatId);
   await sendData();
