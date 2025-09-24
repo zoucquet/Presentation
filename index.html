@@ -110,58 +110,40 @@ const db = getFirestore(app);
 let startTime = Date.now();
 
 // --- Détection appareil ---
-function getDevice() {
-  const ua = navigator.userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod/.test(ua)) {
-    if (/iphone/.test(ua)) return "iPhone";
-    if (/ipad/.test(ua)) return "iPad";
-    if (/android/.test(ua)) return "Android";
-    return "Téléphone";
+function detectDevice(userAgent) {
+  const ua = userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
+    let model = "Téléphone";
+    if (/iphone/.test(ua)) model = "iPhone";
+    else if (/ipad/.test(ua)) model = "iPad";
+    else if (/android/.test(ua)) model = "Android";
+    return model;
+  } else {
+    return "PC/Mac";
   }
-  return "PC/Mac";
-}
-
-// --- Format date/heure français ---
-function formatDateFR(date) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "Europe/Paris"
-  }).format(date);
 }
 
 // --- Enregistrement des visites ---
 async function recordVisit() {
-  const durationMs = Date.now() - startTime;
-  let durationText;
-  if (durationMs < 60*1000) {
-    durationText = Math.round(durationMs/1000) + " s";
-  } else {
-    durationText = (durationMs/60000).toFixed(1) + " min";
-  }
-
   try {
     const res = await fetch("https://ipapi.co/json/");
     const data = await res.json();
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    const device = detectDevice(navigator.userAgent);
 
     await addDoc(collection(db, "visites"), {
       ip: data.ip,
       ville: data.city,
       pays: data.country_name,
-      date: formatDateFR(new Date()),
+      date: new Date().toISOString(),
       userAgent: navigator.userAgent,
       resolution: screen.width + "x" + screen.height,
-      device: getDevice(),
+      device: device,
       language: navigator.language,
-      tempsSurPage: durationText
+      tempsSurPage: durationSeconds
     });
 
-    console.log("✅ Visite enregistrée :", durationText);
+    console.log("✅ Visite enregistrée !");
   } catch (e) {
     console.error("❌ Erreur d’enregistrement :", e);
   }
@@ -180,6 +162,7 @@ function typeHacked() {
     setTimeout(typeHacked, speedHacked);
   } else {
     runCommands();
+    recordVisit();
   }
 }
 
@@ -259,7 +242,6 @@ function runCommands(){
   }
 }
 
-// --- Enregistrer la visite à la sortie ---
 window.addEventListener('beforeunload', recordVisit);
 
 typeHacked();
