@@ -89,7 +89,8 @@ html, body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
@@ -102,56 +103,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db = getFirestore(app);
-
-// --- Temps sur la page avec heartbeat ---
-let startTime = Date.now();
-let visitDocId = null;
-
-// --- Détection appareil ---
-function detectDevice(userAgent) {
-  const ua = userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
-    if (/iphone/.test(ua)) return "iPhone";
-    if (/ipad/.test(ua)) return "iPad";
-    if (/android/.test(ua)) return "Android";
-    return "Téléphone";
-  } else {
-    return "PC/Mac";
-  }
-}
-
-// --- Création/maj document visite ---
-async function sendHeartbeat() {
-  try {
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-    const device = detectDevice(navigator.userAgent);
-    const visitData = {
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      resolution: screen.width + "x" + screen.height,
-      device: device,
-      language: navigator.language,
-      tempsSurPageSec: durationSeconds
-    };
-
-    if (!visitDocId) {
-      // Premier envoi → créer doc
-      const docRef = doc(collection(db, "visites"));
-      visitDocId = docRef.id;
-      await setDoc(docRef, visitData);
-    } else {
-      // Mises à jour suivantes → overwrite
-      const docRef = doc(db, "visites", visitDocId);
-      await setDoc(docRef, visitData);
-    }
-  } catch (e) {
-    console.error("Erreur heartbeat :", e);
-  }
-}
-
-// --- Heartbeat toutes les 5s ---
-setInterval(sendHeartbeat, 5000);
 
 // --- Texte hacké ---
 const hackedTextStr = "Vous avez été hacké";
@@ -166,7 +119,7 @@ function typeHacked() {
     setTimeout(typeHacked, speedHacked);
   } else {
     runCommands();
-    sendHeartbeat(); // premier envoi
+    startHeartbeat();
   }
 }
 
@@ -246,7 +199,59 @@ function runCommands(){
   }
 }
 
+// --- Détection appareil ---
+function detectDevice(userAgent) {
+  const ua = userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
+    if (/iphone/.test(ua)) return "iPhone";
+    if (/ipad/.test(ua)) return "iPad";
+    if (/android/.test(ua)) return "Android";
+    return "Téléphone";
+  } else {
+    return "PC/Mac";
+  }
+}
+
+// --- Heartbeat ---
+let startTime = Date.now();
+let lastSeen = startTime;
+let active = true;
+
+function startHeartbeat(){
+  // mise à jour toutes les secondes
+  setInterval(async () => {
+    if(!active) return;
+    lastSeen = Date.now();
+    const durationSeconds = Math.round((lastSeen - startTime)/1000);
+
+    const device = detectDevice(navigator.userAgent);
+
+    try {
+      await addDoc(collection(db, "visites"), {
+        ip: "non récupérée sans service externe",
+        device,
+        resolution: screen.width + "x" + screen.height,
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        lastSeen: new Date().toLocaleString("fr-FR", {timeZone:"Europe/Paris"}),
+        tempsSurPage: durationSeconds
+      });
+    } catch(e) {
+      console.error("Erreur heartbeat :", e);
+    }
+  }, 1000);
+}
+
+// Optional : détecte l’activité de l’utilisateur
+function resetHeartbeat(){
+  active = true;
+}
+["mousemove","keydown","scroll","touchstart"].forEach(evt=>{
+  window.addEventListener(evt, resetHeartbeat);
+});
+
 typeHacked();
 </script>
+
 </body>
 </html>
