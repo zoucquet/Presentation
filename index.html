@@ -89,10 +89,8 @@ html, body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-// --- Configuration Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
   authDomain: "presentation-59c5e.firebaseapp.com",
@@ -104,12 +102,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
-// --- Début du temps ---
-const startTime = Date.now();
-let lastSeen = startTime;
+// --- Temps sur la page avec heartbeat ---
+let startTime = Date.now();
+let visitDocId = null;
 
 // --- Détection appareil ---
 function detectDevice(userAgent) {
@@ -119,53 +116,42 @@ function detectDevice(userAgent) {
     if (/ipad/.test(ua)) return "iPad";
     if (/android/.test(ua)) return "Android";
     return "Téléphone";
+  } else {
+    return "PC/Mac";
   }
-  return "PC/Mac";
 }
 
-// --- Création d'une visite initiale ---
-let visitDocId = null;
-
-async function createVisit() {
-  const device = detectDevice(navigator.userAgent);
+// --- Création/maj document visite ---
+async function sendHeartbeat() {
   try {
-    const res = await fetch("https://ipapi.co/json/");
-    const data = await res.json();
-    const docRef = await addDoc(collection(db, "visites"), {
-      ip: data.ip,
-      ville: data.city,
-      pays: data.country_name,
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    const device = detectDevice(navigator.userAgent);
+    const visitData = {
+      timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       resolution: screen.width + "x" + screen.height,
       device: device,
       language: navigator.language,
-      startTime: new Date().toISOString(),
-      lastSeen: new Date().toISOString()
-    });
-    visitDocId = docRef.id;
-    console.log("✅ Visite créée !");
-  } catch(e) {
-    console.error("❌ Erreur création visite :", e);
+      tempsSurPageSec: durationSeconds
+    };
+
+    if (!visitDocId) {
+      // Premier envoi → créer doc
+      const docRef = doc(collection(db, "visites"));
+      visitDocId = docRef.id;
+      await setDoc(docRef, visitData);
+    } else {
+      // Mises à jour suivantes → overwrite
+      const docRef = doc(db, "visites", visitDocId);
+      await setDoc(docRef, visitData);
+    }
+  } catch (e) {
+    console.error("Erreur heartbeat :", e);
   }
 }
 
-// --- Heartbeat pour mise à jour du temps ---
-async function heartbeat() {
-  if(!visitDocId) return;
-  lastSeen = Date.now();
-  try {
-    await setDoc(doc(db, "visites", visitDocId), {
-      lastSeen: new Date().toISOString(),
-      tempsSurPage: Math.round((lastSeen - startTime)/1000)
-    }, { merge: true });
-  } catch(e) {
-    console.error("❌ Erreur heartbeat :", e);
-  }
-}
-
-// --- Démarrage Heartbeat toutes les 2 secondes ---
-createVisit();
-setInterval(heartbeat, 2000);
+// --- Heartbeat toutes les 5s ---
+setInterval(sendHeartbeat, 5000);
 
 // --- Texte hacké ---
 const hackedTextStr = "Vous avez été hacké";
@@ -180,6 +166,7 @@ function typeHacked() {
     setTimeout(typeHacked, speedHacked);
   } else {
     runCommands();
+    sendHeartbeat(); // premier envoi
   }
 }
 
