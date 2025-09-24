@@ -19,6 +19,7 @@ html, body {
   gap: 2rem;
 }
 
+/* Boîte hacké */
 .hacked-box {
   width: 90%;
   max-width: 600px;
@@ -43,6 +44,7 @@ html, body {
   50% {opacity:0;}
 }
 
+/* Commandes */
 .command-box {
   width: 320px;
   height: 50px;
@@ -123,19 +125,19 @@ function detectDevice(userAgent) {
   }
 }
 
-// --- Enregistrement des visites ---
+// --- Enregistrement visite dès l'arrivée ---
 async function recordVisit() {
   try {
     const res = await fetch("https://ipapi.co/json/");
     const data = await res.json();
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
     const device = detectDevice(navigator.userAgent);
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
     await addDoc(collection(db, "visites"), {
       ip: data.ip,
       ville: data.city,
       pays: data.country_name,
-      date: new Date().toISOString(),
+      date: new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" }),
       userAgent: navigator.userAgent,
       resolution: screen.width + "x" + screen.height,
       device: device,
@@ -162,7 +164,7 @@ function typeHacked() {
     setTimeout(typeHacked, speedHacked);
   } else {
     runCommands();
-    recordVisit();
+    recordVisit(); // enregistre la visite immédiatement
   }
 }
 
@@ -242,9 +244,8 @@ function runCommands(){
   }
 }
 
-window.addEventListener('beforeunload', recordVisit);
-
 typeHacked();
 </script>
+
 </body>
 </html>
