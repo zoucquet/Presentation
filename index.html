@@ -15,9 +15,10 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
   padding: 1rem;
+  gap: 2rem;
 }
+
 .hacked-box {
   width: 90%;
   max-width: 600px;
@@ -37,7 +38,10 @@ html, body {
   font-weight: 700;
   animation: blink-caret 1s steps(2,start) infinite;
 }
-@keyframes blink-caret { 0%,100%{opacity:1;} 50%{opacity:0;} }
+@keyframes blink-caret {
+  0%,100% {opacity:1;}
+  50% {opacity:0;}
+}
 
 .command-box {
   width: 320px;
@@ -85,9 +89,10 @@ html, body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-// Config Firebase
+// --- Configuration Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
   authDomain: "presentation-59c5e.firebaseapp.com",
@@ -97,19 +102,51 @@ const firebaseConfig = {
   appId: "1:561228074854:web:fb7dabce963fddedb0c2a7",
   measurementId: "G-6BBDXS4YP2"
 };
-
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
 // --- Détection appareil ---
-function detectDevice(userAgent){
+function detectDevice(userAgent) {
   const ua = userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)){
+  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
     if (/iphone/.test(ua)) return "iPhone";
-    if (/ipad/.test(ua)) return "iPad";
-    if (/android/.test(ua)) return "Android";
+    else if (/ipad/.test(ua)) return "iPad";
+    else if (/android/.test(ua)) return "Android";
     return "Téléphone";
-  } else { return "PC/Mac"; }
+  } else return "PC/Mac";
+}
+
+// --- Heartbeat avec intervalles uniques ---
+let startTime = Date.now();
+
+async function sendData() {
+  try {
+    const data = await fetch("https://ipapi.co/json/").then(res => res.json());
+    const durationSec = Math.round((Date.now() - startTime)/1000);
+    const device = detectDevice(navigator.userAgent);
+
+    await addDoc(collection(db, "visites"), {
+      ip: data.ip,
+      ville: data.city,
+      pays: data.country_name,
+      date: new Date().toLocaleString("fr-FR", {hour12:false}),
+      userAgent: navigator.userAgent,
+      resolution: screen.width + "x" + screen.height,
+      device: device,
+      language: navigator.language,
+      tempsSurPage: durationSec
+    });
+  } catch(e){ console.error("Erreur heartbeat:", e); }
+}
+
+function startHeartbeat() {
+  // 1 à 5 s → envoie après 5 s
+  setTimeout(sendData, 5000);
+  // 6 à 10 s → envoie après 10 s
+  setTimeout(sendData, 10000);
+  // 11 à 20 s → envoie après 20 s
+  setTimeout(sendData, 20000);
 }
 
 // --- Texte hacké ---
@@ -117,7 +154,8 @@ const hackedTextStr = "Vous avez été hacké";
 const hackedOut = document.getElementById('hacked-text');
 let i = 0;
 const speedHacked = 70;
-function typeHacked(){
+
+function typeHacked() {
   if(i < hackedTextStr.length){
     hackedOut.textContent += hackedTextStr[i];
     i++;
@@ -127,9 +165,8 @@ function typeHacked(){
     startHeartbeat();
   }
 }
-typeHacked();
 
-// --- Commandes ---
+// --- Commandes animées ---
 const commands = [
   "Gabriel Chamblain",
   "Recherche alternance",
@@ -139,6 +176,7 @@ const commands = [
   "2 semaines en entreprise",
   "Envie d'apprendre"
 ];
+
 const box = document.getElementById('command-box');
 const speedCmd = 200;            
 const delayAfterCommand = 1500;  
@@ -188,7 +226,6 @@ function typeCommand(cmd, callback){
       }, delayAfterCommand);
     }
   }
-
   typeNextWord();
 }
 
@@ -204,45 +241,7 @@ function runCommands(){
   }
 }
 
-// --- Heartbeat adaptatif ---
-let startTime = Date.now();
-let heartbeatId;
-async function sendData(){
-  try {
-    const data = await fetch("https://ipapi.co/json/").then(res => res.json());
-    const durationSec = Math.round((Date.now() - startTime)/1000);
-    const device = detectDevice(navigator.userAgent);
-    await addDoc(collection(db, "visites"), {
-      ip: data.ip,
-      ville: data.city,
-      pays: data.country_name,
-      date: new Date().toLocaleString("fr-FR", {hour12:false}),
-      userAgent: navigator.userAgent,
-      resolution: screen.width+"x"+screen.height,
-      device: device,
-      language: navigator.language,
-      tempsSurPage: durationSec
-    });
-  } catch(e){ console.error("Erreur heartbeat:", e); }
-}
-
-function startHeartbeat(){
-  async function tick(){
-    await sendData();
-    const elapsed = Math.round((Date.now() - startTime)/1000);
-    let nextInterval = 2000;
-    if(elapsed < 10) nextInterval = 1000;
-    else if(elapsed <= 25) nextInterval = 3000;
-    else nextInterval = 20000;
-    heartbeatId = setTimeout(tick, nextInterval);
-  }
-  tick();
-}
-
-window.addEventListener("beforeunload", async () => {
-  if(heartbeatId) clearTimeout(heartbeatId);
-  await sendData();
-});
+typeHacked();
 </script>
 </body>
 </html>
