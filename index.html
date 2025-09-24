@@ -1,90 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CV — Accueil</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CV — accueil</title>
 <style>
-html, body {
-  height: 100%;
-  margin: 0;
-  background: #000;
-  color: #0f0;
-  font-family: "Courier New", monospace;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  gap: 2rem;
-}
-.hacked-box {
-  width: 90%;
-  max-width: 600px;
-  border: 2px solid #0f0;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 0 12px rgba(0,255,0,0.4);
-  font-size: clamp(28px,5vw,48px);
-  white-space: nowrap;
-  overflow: hidden;
-  position: relative;
-  text-align: center;
-}
-.caret {
-  display: inline-block;
-  width: .7ch;
-  font-weight: 700;
-  animation: blink-caret 1s steps(2,start) infinite;
-}
-@keyframes blink-caret {
-  0%,100% {opacity:1;}
-  50% {opacity:0;}
-}
-.command-box {
-  width: 320px;
-  height: 50px;
-  border: 2px solid #0f0;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 0 8px rgba(0,255,0,0.3);
-  background: #000;
-  overflow: hidden;
-  position: relative;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-}
-.line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  transition: transform 0.5s ease, opacity 0.5s ease;
-}
-.type { display: inline-block; }
-.extra {
-  max-width: 800px;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #0f0;
-  text-align: center;
-}
+  html,body{
+    height:100%;
+    margin:0;
+    background:#000;
+    color:#0f0;
+    font-family:"Courier New",monospace;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2rem;
+    padding:1rem;
+  }
+
+  .hacked-box{
+    width:90%;
+    max-width:600px;
+    border:2px solid #0f0;
+    border-radius:8px;
+    padding:1rem 1.5rem;
+    box-shadow:0 0 12px rgba(0,255,0,0.4);
+    font-size:clamp(28px,5vw,48px);
+    white-space:nowrap;
+    overflow:hidden;
+    position:relative;
+    text-align:center;
+  }
+  .caret{
+    display:inline-block;
+    width:.7ch;
+    font-weight:700;
+    animation:blink-caret 1s steps(2,start) infinite;
+    user-select:none;
+  }
+  @keyframes blink-caret{0%,100%{opacity:1;}50%{opacity:0;}}
+
+  .command-box{
+    width:320px;
+    height:50px;
+    border:2px solid #0f0;
+    border-radius:8px;
+    padding:0.5rem 1rem;
+    box-shadow:0 0 8px rgba(0,255,0,0.3);
+    background:#000;
+    overflow:hidden;
+    position:relative;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+  }
+
+  .line{
+    position:absolute;
+    top:0;
+    left:0;
+    display:flex;
+    transition:transform .5s ease, opacity .5s ease;
+  }
+  .type{ display:inline-block; }
+
+  .extra{
+    max-width:800px;
+    font-size:16px;
+    line-height:1.5;
+    color:#0f0;
+    text-align:center;
+  }
 </style>
 </head>
 <body>
 
-<div class="hacked-box" id="hacked-box">
-  <span id="hacked-text"></span><span class="caret">_</span>
-</div>
+  <div class="hacked-box" id="hacked-box">
+    <span id="hacked-text"></span><span class="caret">_</span>
+  </div>
 
-<div class="command-box" id="command-box"></div>
+  <div class="command-box" id="command-box"></div>
 
-<div class="extra">
-  Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter !
-</div>
+  <div class="extra">
+    Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter !
+  </div>
 
 <script type="module">
+// ---------- Firebase imports & init ----------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getFirestore, collection, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
@@ -97,14 +101,14 @@ const firebaseConfig = {
   appId: "1:561228074854:web:fb7dabce963fddedb0c2a7",
   measurementId: "G-6BBDXS4YP2"
 };
+initializeApp(firebaseConfig);
+const db = getFirestore();
+// ---------------------------------------------
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// --- Détection appareil ---
+// ---------- utilitaires ----------
 function detectDevice(userAgent) {
-  const ua = userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod/.test(ua)) {
+  const ua = (userAgent || "").toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod|blackberry|windows phone/.test(ua)) {
     if (/iphone/.test(ua)) return "iPhone";
     if (/ipad/.test(ua)) return "iPad";
     if (/android/.test(ua)) return "Android";
@@ -112,51 +116,188 @@ function detectDevice(userAgent) {
   }
   return "PC/Mac";
 }
+function formatDateFR(d) {
+  return new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", hour12: false });
+}
+// ----------------------------------
 
-// --- Enregistrement ---
-async function startVisit() {
-  const res = await fetch("https://ipapi.co/json/");
-  const data = await res.json();
+// ---------- VISIT (single doc + elapsed increments) ----------
+let visitDocId = null;     // id du document créé pour la visite
+let elapsedTime = 0;       // secondes (sera incrémenté de +2)
+let elapsedInterval = null; // référence setInterval
 
-  // Création du doc au début
-  const docRef = await addDoc(collection(db, "visites"), {
-    ip: data.ip,
-    ville: data.city,
-    pays: data.country_name,
-    date: new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" }),
+async function createVisitDocInitial() {
+  // récupère géo/IP optionnel (ipapi). Si échoue, on envoie sans ip/ville.
+  let geo = { ip: null, city: null, country_name: null };
+  try {
+    const r = await fetch("https://ipapi.co/json/");
+    if (r.ok) geo = await r.json();
+  } catch (e) {
+    console.warn("ipapi inaccessible :", e);
+  }
+
+  const payload = {
+    ip: geo.ip || "inconnue",
+    ville: geo.city || "inconnue",
+    pays: geo.country_name || "inconnu",
+    date: formatDateFR(new Date()),
     userAgent: navigator.userAgent,
-    resolution: screen.width + "x" + screen.height,
     device: detectDevice(navigator.userAgent),
-    language: navigator.language,
-    elapsedTime: 0 // temps passé
-  });
+    resolution: screen.width + "x" + screen.height,
+    language: navigator.language || navigator.userLanguage || "inconnu",
+    elapsedTime: 0,
+    steps: { "start": formatDateFR(new Date()) } // on marque le départ
+  };
 
-  console.log("✅ Doc créé :", docRef.id);
+  try {
+    const ref = await addDoc(collection(db, "visites"), payload);
+    visitDocId = ref.id;
+    console.log("Visite créée (id):", visitDocId);
+  } catch (e) {
+    console.error("Erreur création visite :", e);
+  }
+}
 
-  // Variable compteur
-  let elapsedTime = 0;
-  const interval = setInterval(async () => {
+async function updateElapsedOnDoc(nextElapsed) {
+  if (!visitDocId) return;
+  try {
+    // on écrit elapsedTime et on ajoute un champ stepX timestamp
+    await updateDoc(doc(db, "visites", visitDocId), {
+      elapsedTime: nextElapsed,
+      [`steps.${nextElapsed}s`]: formatDateFR(new Date())
+    });
+    console.log("Doc mis à jour:", visitDocId, nextElapsed + "s");
+  } catch (e) {
+    console.error("Erreur updateElapsedOnDoc :", e);
+  }
+}
+
+function startElapsedIncrementing() {
+  // sécurité : si déjà démarré, on ne redémarre pas
+  if (elapsedInterval) return;
+
+  // on démarre l'intervalle de +2s toutes les 2s
+  elapsedInterval = setInterval(async () => {
     elapsedTime += 2;
+    // si dépasse 25 => on stoppe avant d'écrire (ou on écrit la dernière valeur)
     if (elapsedTime > 25) {
-      clearInterval(interval); // stop après 25s
-      console.log("⏹️ Arrêt du suivi après 25s");
+      clearInterval(elapsedInterval);
+      elapsedInterval = null;
+      console.log("Suivi arrêté après 25s");
+      // possibilité : marquer finSession
+      if (visitDocId) {
+        try {
+          await updateDoc(doc(db, "visites", visitDocId), {
+            finishedAt: formatDateFR(new Date())
+          });
+        } catch (e) { console.warn("Erreur écriture finishedAt:", e); }
+      }
       return;
     }
-    try {
-      await updateDoc(doc(db, "visites", docRef.id), {
-        elapsedTime: elapsedTime
-      });
-      console.log("⏱️ Temps mis à jour :", elapsedTime, "s");
-    } catch (e) {
-      console.error("❌ Erreur update :", e);
-      clearInterval(interval);
-    }
+    // met à jour le document avec la nouvelle valeur
+    await updateElapsedOnDoc(elapsedTime);
   }, 2000);
 }
 
-startVisit();
-</script>
+// Optionnel : tenter de marquer la fin si page se ferme (pas fiable à 100%)
+window.addEventListener("beforeunload", () => {
+  if (elapsedInterval) {
+    clearInterval(elapsedInterval);
+    elapsedInterval = null;
+  }
+  // pas d'appel asynchrone garanti ici — on ne peut pas compter dessus
+});
 
+// --------------------------------------------
+
+// ---------- Texte + commandes (visuel) ----------
+const hackedTextStr = "Vous avez été hacké";
+const hackedOut = document.getElementById("hacked-text");
+let ti = 0;
+const speedHacked = 70;
+
+function typeHacked() {
+  if (ti < hackedTextStr.length) {
+    hackedOut.textContent += hackedTextStr[ti++];
+    setTimeout(typeHacked, speedHacked);
+  } else {
+    runCommands();
+    // Après le texte tapé, on crée le doc de visite puis on démarre l'incrément
+    (async () => {
+      await createVisitDocInitial();  // crée doc initial avec elapsedTime:0
+      // write initial 0s step already included; on lance incréments de +2s
+      startElapsedIncrementing();
+    })();
+  }
+}
+
+const commands = [
+  "Gabriel Chamblain",
+  "Recherche alternance",
+  "Candidat motivé",
+  "3ᵉ année de BUT",
+  "1 semaine en formation",
+  "2 semaines en entreprise",
+  "Envie d'apprendre"
+];
+const box = document.getElementById("command-box");
+const speedCmd = 200;
+const delayAfterCommand = 1500;
+let cmdIndex = 0;
+
+function typeCommand(cmd, callback) {
+  const line = document.createElement("div");
+  line.classList.add("line");
+  const typed = document.createElement("span");
+  typed.classList.add("type");
+  const caret = document.createElement("span");
+  caret.classList.add("caret");
+  caret.textContent = "_";
+
+  line.appendChild(typed);
+  line.appendChild(caret);
+  box.appendChild(line);
+
+  const words = cmd.split(" ");
+  let w = 0;
+
+  function nextWord() {
+    if (w < words.length) {
+      if (w > 0) typed.textContent += " ";
+      const word = words[w++];
+      let l = 0;
+      function nextLetter() {
+        if (l < word.length) {
+          typed.textContent += word[l++];
+          setTimeout(nextLetter, Math.max(50, speedCmd / word.length));
+        } else {
+          setTimeout(nextWord, 400);
+        }
+      }
+      nextLetter();
+    } else {
+      setTimeout(() => {
+        line.style.transform = "translateY(-100%)";
+        line.style.opacity = "0";
+        setTimeout(() => { line.remove(); callback(); }, 500);
+      }, delayAfterCommand);
+    }
+  }
+  nextWord();
+}
+
+function runCommands() {
+  if (cmdIndex < commands.length) {
+    typeCommand(commands[cmdIndex++], () => runCommands());
+  } else {
+    cmdIndex = 0;
+    runCommands();
+  }
+}
+
+// démarrage
+typeHacked();
+
+</script>
 </body>
 </html>
-
