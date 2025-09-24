@@ -77,6 +77,22 @@ html, body {
   color: #0f0;
   text-align: center;
 }
+
+/* Tableau visiteurs */
+#visitor-table {
+  width: 90%;
+  max-width: 600px;
+  border: 1px solid #0f0;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+#visitor-table th, #visitor-table td {
+  border: 1px solid #0f0;
+  padding: 4px 8px;
+  font-size: 14px;
+  text-align: left;
+  color: #0f0;
+}
 </style>
 </head>
 <body>
@@ -91,144 +107,190 @@ html, body {
   Pour éviter ces risques, je suis une personne motivée, polyvalente et toujours prête à apprendre. N'hésitez pas à me contacter ! 
 </div>
 
+<h3>Visites récentes :</h3>
+<table id="visitor-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>IP</th>
+      <th>Ville/Pays</th>
+      <th>Appareil/Navigateur</th>
+      <th>Résolution</th>
+      <th>Langue</th>
+      <th>Temps (s)</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
 <!-- Firebase + Firestore -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
-    authDomain: "presentation-59c5e.firebaseapp.com",
-    projectId: "presentation-59c5e",
-    storageBucket: "presentation-59c5e.firebasestorage.app",
-    messagingSenderId: "561228074854",
-    appId: "1:561228074854:web:fb7dabce963fddedb0c2a7",
-    measurementId: "G-6BBDXS4YP2"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyB8AakFFVRhaSJhqADPLhaBK-eG0aEkH9A",
+  authDomain: "presentation-59c5e.firebaseapp.com",
+  projectId: "presentation-59c5e",
+  storageBucket: "presentation-59c5e.firebasestorage.app",
+  messagingSenderId: "561228074854",
+  appId: "1:561228074854:web:fb7dabce963fddedb0c2a7",
+  measurementId: "G-6BBDXS4YP2"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
 
-  async function recordVisit() {
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
+// --- Temps passé ---
+let startTime = Date.now();
 
-      await addDoc(collection(db, "visites"), {
-        ip: data.ip,
-        ville: data.city,
-        pays: data.country_name,
-        date: new Date().toISOString(),
-        userAgent: navigator.userAgent
-      });
+// --- Enregistrement des visites ---
+async function recordVisit() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const data = await res.json();
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
-      console.log("✅ Visite enregistrée !");
-    } catch (e) {
-      console.error("❌ Erreur d’enregistrement :", e);
-    }
+    await addDoc(collection(db, "visites"), {
+      ip: data.ip,
+      ville: data.city,
+      pays: data.country_name,
+      date: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      resolution: screen.width + "x" + screen.height,
+      language: navigator.language,
+      tempsSurPage: durationSeconds
+    });
+
+    console.log("✅ Visite enregistrée !");
+    displayVisitors(); 
+  } catch (e) {
+    console.error("❌ Erreur d’enregistrement :", e);
   }
+}
 
-  recordVisit();
-</script>
+// --- Tableau visiteurs ---
+async function displayVisitors() {
+  const tbody = document.querySelector("#visitor-table tbody");
+  tbody.innerHTML = "";
 
-<script>
-  // --- Texte hacké ---
-  const hackedTextStr = "Vous avez été hacké";
-  const hackedOut = document.getElementById('hacked-text');
-  let i = 0;
-  const speedHacked = 70;
+  const q = query(collection(db, "visites"), orderBy("date", "desc"), limit(10));
+  const querySnapshot = await getDocs(q);
+  querySnapshot.forEach(doc => {
+    const v = doc.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${new Date(v.date).toLocaleString()}</td>
+      <td>${v.ip}</td>
+      <td>${v.ville} / ${v.pays}</td>
+      <td>${v.userAgent}</td>
+      <td>${v.resolution}</td>
+      <td>${v.language}</td>
+      <td>${v.tempsSurPage || '-'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  function typeHacked() {
-    if(i < hackedTextStr.length){
-      hackedOut.textContent += hackedTextStr[i];
-      i++;
-      setTimeout(typeHacked, speedHacked);
-    } else {
-      runCommands();
-    }
+// --- Texte hacké ---
+const hackedTextStr = "Vous avez été hacké";
+const hackedOut = document.getElementById('hacked-text');
+let i = 0;
+const speedHacked = 70;
+
+function typeHacked() {
+  if(i < hackedTextStr.length){
+    hackedOut.textContent += hackedTextStr[i];
+    i++;
+    setTimeout(typeHacked, speedHacked);
+  } else {
+    runCommands();
+    recordVisit();
   }
+}
 
-  // --- Commandes ---
-  const commands = [
-    "Gabriel Chamblain",
-    "Recherche alternance",
-    "Candidat motivé",
-    "3ème année de BUT R&T",
-    "1 semaine en formation",
-    "2 semaines en entreprise",
-    "Envie d'apprendre"
-  ];
+// --- Commandes ---
+const commands = [
+  "Gabriel Chamblain",
+  "Recherche alternance",
+  "Candidat motivé",
+  "3ᵉ année de BUT",
+  "1 semaine en formation",
+  "2 semaines en entreprise",
+  "Envie d'apprendre"
+];
 
-  const box = document.getElementById('command-box');
-  const speedCmd = 200;            
-  const delayAfterCommand = 1500;  
-  let cmdIndex = 0;
+const box = document.getElementById('command-box');
+const speedCmd = 200;            
+const delayAfterCommand = 1500;  
+let cmdIndex = 0;
 
-  function typeCommand(cmd, callback){
-    const line = document.createElement('div');
-    line.classList.add('line');
-    const typed = document.createElement('span');
-    typed.classList.add('type');
-    const caret = document.createElement('span');
-    caret.classList.add('caret');
-    caret.textContent = "_";
+function typeCommand(cmd, callback){
+  const line = document.createElement('div');
+  line.classList.add('line');
+  const typed = document.createElement('span');
+  typed.classList.add('type');
+  const caret = document.createElement('span');
+  caret.classList.add('caret');
+  caret.textContent = "_";
 
-    line.appendChild(typed);
-    line.appendChild(caret);
-    box.appendChild(line);
+  line.appendChild(typed);
+  line.appendChild(caret);
+  box.appendChild(line);
 
-    const words = cmd.split(" ");
-    let wordIndex = 0;
+  const words = cmd.split(" ");
+  let wordIndex = 0;
 
-    function typeNextWord(){
-      if(wordIndex < words.length){
-        if(wordIndex > 0) typed.textContent += " ";
-        const word = words[wordIndex];
-        let letterIndex = 0;
+  function typeNextWord(){
+    if(wordIndex < words.length){
+      if(wordIndex > 0) typed.textContent += " ";
+      const word = words[wordIndex];
+      let letterIndex = 0;
 
-        function typeLetter(){
-          if(letterIndex < word.length){
-            typed.textContent += word[letterIndex];
-            letterIndex++;
-            setTimeout(typeLetter, speedCmd/word.length);
-          } else {
-            wordIndex++;
-            setTimeout(typeNextWord, 400);
-          }
+      function typeLetter(){
+        if(letterIndex < word.length){
+          typed.textContent += word[letterIndex];
+          letterIndex++;
+          setTimeout(typeLetter, speedCmd/word.length);
+        } else {
+          wordIndex++;
+          setTimeout(typeNextWord, 400);
         }
-        typeLetter();
-      } else {
-        setTimeout(() => {
-          line.style.transform = "translateY(-100%)";
-          line.style.opacity = 0;
-          setTimeout(() => {
-            line.remove();
-            callback();
-          }, 500);
-        }, delayAfterCommand);
       }
-    }
-
-    typeNextWord();
-  }
-
-  function runCommands(){
-    if(cmdIndex < commands.length){
-      typeCommand(commands[cmdIndex], ()=>{
-        cmdIndex++;
-        runCommands();
-      });
+      typeLetter();
     } else {
-      cmdIndex = 0;
-      runCommands();
+      setTimeout(() => {
+        line.style.transform = "translateY(-100%)";
+        line.style.opacity = 0;
+        setTimeout(() => {
+          line.remove();
+          callback();
+        }, 500);
+      }, delayAfterCommand);
     }
   }
 
-  typeHacked();
-</script>
+  typeNextWord();
+}
 
+function runCommands(){
+  if(cmdIndex < commands.length){
+    typeCommand(commands[cmdIndex], ()=>{
+      cmdIndex++;
+      runCommands();
+    });
+  } else {
+    cmdIndex = 0;
+    runCommands();
+  }
+}
+
+// --- Déclenche en quittant la page ---
+window.addEventListener('beforeunload', recordVisit);
+
+typeHacked();
+</script>
 </body>
 </html>
-
